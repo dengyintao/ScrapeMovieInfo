@@ -72,6 +72,27 @@ func extractMovieCode(filename string) string {
 	return base
 }
 
+func getUniqueFilePath(targetPath string) string {
+	if _, err := os.Stat(targetPath); err != nil {
+		// 文件不存在，可以直接使用
+		return targetPath
+	}
+
+	dir := filepath.Dir(targetPath)
+	ext := filepath.Ext(targetPath)
+	nameWithoutExt := strings.TrimSuffix(filepath.Base(targetPath), ext)
+
+	counter := 1
+	for {
+		newPath := filepath.Join(dir, fmt.Sprintf("%s_%d%s", nameWithoutExt, counter, ext))
+		if _, err := os.Stat(newPath); err != nil {
+			// 找到一个不存在的文件名
+			return newPath
+		}
+		counter++
+	}
+}
+
 func main() {
 	fmt.Println("ScrapeMovieData v0.0.0")
 	fmt.Println("hello world")
@@ -116,12 +137,13 @@ func main() {
 		newPath := filepath.Join(filepath.Dir(file), movieCode)
 
 		if file != newPath {
-			err := os.Rename(file, newPath)
+			uniquePath := getUniqueFilePath(newPath)
+			err := os.Rename(file, uniquePath)
 			if err != nil {
-				fmt.Printf("Error renaming %s to %s: %v\n", file, movieCode, err)
+				fmt.Printf("Error renaming %s to %s: %v\n", file, uniquePath, err)
 				continue
 			}
-			fmt.Printf("Renamed: %s -> %s\n", file, movieCode)
+			fmt.Printf("Renamed: %s -> %s\n", file, filepath.Base(uniquePath))
 		} else {
 			fmt.Printf("Skipped: %s (already named correctly)\n", file)
 		}
